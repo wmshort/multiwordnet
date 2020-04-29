@@ -19,12 +19,12 @@ deploy:
     distributions: sdist bdist_wheel
     user: wmshort
     password:
-        secure: IS4gdlliizz/oB9WwhdmJuoHeyL/5tzh6/g3sC9MoTw8wPxQGCDkFz8LDzsZLeqKn/EfHM7K35j5jg98kosmGQyj0N9vQjjyinEQnyy70jjybgdN8qzcl9
-            i+OzhPFCEzXp0ZyRaeVX7zxh0YcHtUonO5WNZwGQDN/rdMZJmKBZM2+Soy+Tb8bgJfH5QEVLSygqiNUWzxXKSK7bbqSVwcrf7hFdwRliBPScF5c3GXpVzF23NzUkTwTXAz
-            /K6AbwccNfJsUKM9AtkMBNUrFPYG7lt9jMfU/tS6hDRWQkOP73uKXovIcB8fezjStBzKSixpeo5mR1f0lGTI3TrZIdEqpzYekyiYakjdaXXk6pb+Y7h+mgNwc6/7FxwvYi
-            k815vDz22r9qfBIsjKfrhmKEgPUkni9smTcSyW0COJxQbr+og7xhcnP/sf3JrjZHCqtGIw/Qgd8Kdzc9S+rTfeANTxa2vsop2E45zNDR8KP9Mc64AVLaHkt9CQ5ow6OzFy
-            9oLPFcFv7yliWMrsyBHEn0lj4Yyh3cFgIbqfWJho+CLBDQ9S7T8ei3uT1y7W3/efEHspQfZaXdH9M9JcColl6x1qNWX6/0q+A7YiFE8jjSTYXDjWhsvOrqLtyA7MThObIL
-            mx+yT+7U0fQqSuZldl0uqWKTdzyRz29epH1wD5s+OpW6o=
+      secure: bjss6zo2qyj+SasgM4MR6UDicKDcLxyc+hakeVLZUA4aiZHl0cBIXg8R/Tq5Kyi0z2lzVDd1j6YTMwzxO+lwWORtJjV7Y06ZXqQqBqR6E3wKstEo7ZjCbX
+      zOwUcwLAgVugDJqfsTRiHeF/l0IEz7TthPUq97APFeZUYknGhKCViE2OF+mWl3nD741+0EZUU5ouxEn+tAc50rzAngFMH4AduaZtLjVRALxAndJ2aTsLftduLOz8ZN008E
+      8RaBewaF5e9NpvGPDKhIn+NQf0S+4mEsvnb/ZnntU4MbBgiY2Pu5osmG7cNrXkhAyU0tIYnA34AXNJhCsTkUVV8qBivIfwXexVSafznCVQcRkPYkrLfrQHF3ffEh8TYdGG
+      we6Cowf1x0KPwlzM1XsM8gaz3Fspm1qcrAa/w0G7dbiZEpWX3dt2Crrak7l8UROlAoa5boB1xwk90evzFSpvhcHUjh5wEB+o10kHQkxU6vGrMKYwCn4V9dFGpcJ2v/91na
+      Vg2Di/wevlK6+d54tOOXe1Co8HpCs5Q4O0Z5mPLP6QpcMxvncVemx31Yf713T8Q4S9C4+H6hQNEJ+kbljuskICIna/eYcGExk/GuTt/7cFDQjwqV4YL6mrXNhJE52PNRXM
+      P5tataVgIlMdJKR85EQZSVpRXPMIs015qeG9ObEKqxQQU=
     on:
         tags: true
         repo: wmshort/multiwordnet

@@ -49,7 +49,7 @@ def connect(language, database):
         return cursor
 
 
-def compile(language, *tables, overwrite=True, ignore_errors=True, verbatim=True):
+def compile(language, *tables, overwrite=True, ignore_errors=True, verbose=True):
     if not tables:
         tables = [filename.split('_', maxsplit=1)[1].replace('.sql', '') for filename in os.listdir(f"{module}/{language}/") if filename.endswith('.sql')]
 
@@ -70,7 +70,7 @@ def compile(language, *tables, overwrite=True, ignore_errors=True, verbatim=True
 
             db.execute("PRAGMA synchronous = OFF")
             db.execute("PRAGMA journal_mode = MEMORY")
-            for sql in tqdm(f.readlines(), ncols=80, desc=f"{language}_{table}.sql", disable=not verbatim):
+            for sql in tqdm(f.readlines(), ncols=80, desc=f"{language}_{table}.sql", disable=not verbose):
                 if not(sql.startswith('#') or sql == '\n'):
                     try:
                         db.executescript(sql)

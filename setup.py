@@ -20,7 +20,7 @@ with open("README.rst", "r") as fh:
     long_description = fh.read()
 
 setup(name='multiwordnet',
-      version='0.0.9',
+      version='0.1.0',
       description='A helper library for accessing and manipulating WordNets in the MultiWordNet',
       long_description=long_description,
       url='',
