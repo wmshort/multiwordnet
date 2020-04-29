@@ -1,3 +1,7 @@
+
+.. image:: https://travis-ci.org/wmshort/multiwordnet.svg?branch=master
+    :target: https://travis-ci.org/wmshort/multiwordnet
+
 ============
 MultiWordNet
 ============
