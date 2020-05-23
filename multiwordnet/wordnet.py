@@ -1828,28 +1828,29 @@ class WordNet(object):
         yield from self._relations
 
     def get_relations(self, *, source: Synset=None, target: Synset=None, w_source: Lemma=None, w_target: Lemma=None, type=None, lexical=False) -> Generator['Relation', None, Iterable['Relation']]:
-        temp = list()
         W_SOURCE = W_TARGET = SOURCE = TARGET = TYPE = SYNSETS = ''
         if lexical or type in ['\\', '/', '+c' '-c']:
-            if w_source:
-                W_SOURCE = f"w_source='{w_source.lemma}'"
-            if w_target:
-                W_TARGET = f"w_target='{w_target.lemma}'"
-        elif not lexical and type not in ['\\', '/', '+c' '-c']:
-            if w_source and not source:
-                SYNSETS = [synset.id for synset in w_source.synsets]
-                SOURCE = f"id_source IN ({','.join(['?' for synset in w_source.synsets])})"
-            if w_target and not target:
-                SYNSETS = [synset.id for synset in w_target.synsets]
-                SOURCE = f"id_target IN ({','.join(['?' for synset in w_target.synsets])})"
-        if source:
-            SOURCE = f"id_source='{source.id}'"
-        if target:
-            TARGET = f"id_target='{target.id}'"
+            if not (w_source and w_target):
+                raise ValueError("a source and target lemma must be specified for lexical relations")
+            W_SOURCE = f"w_source='{w_source.lemma}'"
+            W_TARGET = f"w_target='{w_target.lemma}'"
+        else:
+            if source and target:
+                SOURCE = f"id_source='{source.id}'"
+                TARGET = f"id_target='{target.id}'"
+            else:
+                if w_source:
+                    SYNSETS = [synset.id for synset in w_source.synsets]
+                    SOURCE = f"id_source IN ({','.join(['?' for synset in w_source.synsets])})"
+                elif w_target:
+                    SYNSETS = [synset.id for synset in w_target.synsets]
+                    SOURCE = f"id_target IN ({','.join(['?' for synset in w_target.synsets])})"
+
         if type:
             TYPE = f"type='{type}'"
         QR = ' AND '.join(filter(lambda x: x != '', [SOURCE, TARGET, W_SOURCE, W_TARGET, TYPE]))
 
+        temp = []
         if not lexical:
             try:
                 common_relation = db("common", "relation")
