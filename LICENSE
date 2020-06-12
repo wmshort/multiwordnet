@@ -13,4 +13,6 @@ starting from the words listed in Lessico Fondamentale Latino by E. Riganti (Bol
 
 This distribution contains a revised version of the Latin WordNet that has been
 corrected and expanded by W. M. Short of the University of Exeter. Eventually it will be
-updated to include nearly 40,000 lemmas.
+updated to include nearly 70,000 lemmas.
+
+Data for Portuguese is based on the openWordNet-PT (http://github.com/own-pt/openWordnet-PT) by Escola de Matemática Aplicada, Fundação Getulio Vargas is licensed under a Creative Commons Attribution 4.0 International License.
