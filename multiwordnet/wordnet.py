@@ -49,10 +49,10 @@ class Semfield(object):
                 instance = None
             else:
                 if len(results) > 1 and code is None:
-                        results_codes = list()
-                        for result in results:
-                            results_codes.append(result[0])
-                        raise ValueError(f'cannot disambiguate "{english}" between "{", ".join(results_codes)}"')
+                    results_codes = []
+                    for result in results:
+                        results_codes.append(result[0])
+                    raise ValueError(f'cannot disambiguate "{english}" between "{", ".join(results_codes)}"')
                 else:
                     instance = super().__new__(cls)
                     instance._code = results[0][0]
@@ -76,7 +76,7 @@ class Semfield(object):
     @property
     def synsets(self) -> List['Synset']:
         if not self._synsets:
-            temp = list()
+            temp = []
             try:
                 common_semfield = db("common", "semfield")
 
@@ -111,7 +111,7 @@ class Semfield(object):
     @property
     def hypers(self) -> List['Semfield']:
         if not self._hypers:
-            temp = list()
+            temp = []
             try:
                 semfield_hierarchy = db("common", "semfield_hierarchy")
 
@@ -137,7 +137,7 @@ class Semfield(object):
     @property
     def hypons(self) -> List['Semfield']:
         if not self._hypons:
-            temp = list()
+            temp = []
             try:
                 semfield_hierarchy = db("common", "semfield_hierarchy")
 
@@ -178,8 +178,8 @@ class Semfield(object):
                     semfield_hierarchy.execute(f'SELECT code, english FROM semfield_hierarchy WHERE english="{result[0]}" AND code LIKE "{self.code[:2]}%"')
                     result = semfield_hierarchy.fetchone()
 
-                    if result:
-                        self._normal = Semfield(code=result[0], english=result[1], language=self.language)
+                if result:
+                    self._normal = Semfield(code=result[0], english=result[1], language=self.language)
         return self._normal
 
     @property
@@ -226,32 +226,30 @@ class Synset(object):
     """
 
     def __new__(cls, id: str, language: str):
-        if id and language:
-            try:
-                result = None
-                language_synset = db(cls.get_synset_language(id), "synset")
+        if not (id and language):
+            return
+        try:
+            result = None
+            language_synset = db(cls.get_synset_language(id), "synset")
 
+            if language_synset:
+                language_synset.execute(f"SELECT * FROM {cls.get_synset_language(id)}_synset WHERE id='{id}'")
+                result = language_synset.fetchone()
+            if not result:
+                language_synset = db(language, "synset")
                 if language_synset:
-                    language_synset.execute(f"SELECT * FROM {cls.get_synset_language(id)}_synset WHERE id='{id}'")
+                    language_synset.execute(f"SELECT * FROM {language}_synset WHERE id='{id}'")
                     result = language_synset.fetchone()
-                if not result:
-                    language_synset = db(language, "synset")
-                    if language_synset:
-                        language_synset.execute(f"SELECT * FROM {language}_synset WHERE id='{id}'")
-                        result = language_synset.fetchone()
-                if not result:
-                    english_synset = db("english", "synset")
-                    if english_synset:
-                        english_synset.execute(f"SELECT * FROM english_synset WHERE id='{id}'")
-                        result = english_synset.fetchone()
-            except OperationalError:
-                raise
-            else:
-                if result:
-                    instance = super().__new__(cls)
-                else:
-                    instance = None
-            return instance
+            if not result:
+                english_synset = db("english", "synset")
+                if english_synset:
+                    english_synset.execute(f"SELECT * FROM english_synset WHERE id='{id}'")
+                    result = english_synset.fetchone()
+        except OperationalError:
+            raise
+        else:
+            instance = super().__new__(cls) if result else None
+        return instance
 
     def __init__(self, id, language):
         self._id = id
@@ -282,7 +280,7 @@ class Synset(object):
     @property
     def relations(self) -> List['Relation']:
         if not self._relations:
-            temp = list()
+            temp = []
             try:
                 common_relation = db("common", "relation")
 
@@ -348,7 +346,7 @@ class Synset(object):
     @property
     def semfield(self) -> List['Semfield']:
         if not self._semfield:
-            temp = list()
+            temp = []
             try:
                 common_semfield = db("common", "semfield")
 
@@ -378,7 +376,7 @@ class Synset(object):
     @property
     def lemmas(self) -> List['Lemma']:
         if not self._word:
-            temp = list()
+            temp = []
             _DB_COLUMN = {
                 'n': 'id_n',
                 'v': 'id_v',
@@ -393,9 +391,8 @@ class Synset(object):
                     language_synset.execute(f"SELECT word FROM {self.language}_synset WHERE id='{self.id}'")
                     result = language_synset.fetchone()
 
-                    if result:
-                        if result[0] and result[0] != ' GAP! ':
-                            temp = [Lemma(lemma, self.id[0], self.language) for lemma in result[0].strip().split(' ')]
+                    if result and result[0] and result[0] != ' GAP! ':
+                        temp = [Lemma(lemma, self.id[0], self.language) for lemma in result[0].strip().split(' ')]
                 else:
                     language_index = db(self.language, "index")
 
@@ -477,7 +474,7 @@ class Synset(object):
         else:
             path.append(self)
             hypernyms = [hypernymy.target for hypernymy in self.get_relations('@')]
-            if len(hypernyms) == 0:
+            if not hypernyms:
                 return 0
             else:
                 return 1 + max(hypernym.max_depth(path) for hypernym in hypernyms)
@@ -497,7 +494,7 @@ class Synset(object):
         else:
             path.append(self)
             hypernyms = [hypernymy.target for hypernymy in self.get_relations('@')]
-            if len(hypernyms) == 0:
+            if not hypernyms:
                 return 0
             else:
                 return 1 + min(hypernym.min_depth(path) for hypernym in hypernyms)
@@ -509,10 +506,9 @@ class Synset(object):
         """
         ids = []
         for target in breadth_first(list(self.get_relations(type)), depth):
-            if target.id != self.id:
-                if target.id not in ids:
-                    ids.append(target.id)
-                    yield target
+            if target.id != self.id and target.id not in ids:
+                ids.append(target.id)
+                yield target
 
     @property
     def paths_to_root(self):
@@ -526,7 +522,7 @@ class Synset(object):
         paths = []
 
         hypernyms = list(self.get_relations('@'))
-        if len(hypernyms) == 0:
+        if not hypernyms:
             paths = [[self]]
 
         for hypernym in hypernyms:
@@ -564,8 +560,7 @@ class Morpho(object):
             if self.pos == 'v':
                 if len(self.principal_parts) == 3:
                     if self.group == '1': thematic_vowel = 'a'
-                    elif self.group == '2': thematic_vowel = 'e'
-                    elif self.group == '3': thematic_vowel = 'e'
+                    elif self.group in ['2', '3']: thematic_vowel = 'e'
                     else: thematic_vowel = 'i'
                     if self.voice == 'a':
                         ii = f"{self.principal_parts[0]}{thematic_vowel}re"
@@ -603,9 +598,6 @@ class Morpho(object):
                         _lemma = list((i, ii, 'mf.n.'))
                     elif self.gender == 'a': # 1-termination
                         _lemma = list((i, 'mfn.'))
-                elif self.pos == 'r':
-                    if self.principal_parts:
-                        _lemma = list((self._lemma, self.principal_parts[0], self.principal_parts[1]))
         else:
             _lemma = self._lemma
         return _lemma
@@ -702,77 +694,72 @@ class Morpho(object):
 
     @property
     def undotted(self) -> str:
-        if self.language == 'hebrew':
-            if not self._undotted:
-                try:
-                    language_morpho = db(self.language, "morpho")
-                    language_morpho.execute(f"SELECT undotted FROM {self.language}_morpho WHERE lemma='{self.lemma}' and pos='{self.pos}';")
-                    result = language_morpho.fetchone()
-                except OperationalError:
-                    raise
-                else:
-                    if result:
-                        self._undotted = result[0]
+        if self.language == 'hebrew' and not self._undotted:
+            try:
+                language_morpho = db(self.language, "morpho")
+                language_morpho.execute(f"SELECT undotted FROM {self.language}_morpho WHERE lemma='{self.lemma}' and pos='{self.pos}';")
+                result = language_morpho.fetchone()
+            except OperationalError:
+                raise
+            else:
+                if result:
+                    self._undotted = result[0]
         return str(self._undotted) if self._undotted else ''
 
     @property
     def dotted_without_dots(self) -> str:
-        if self.language == 'hebrew':
-            if not self._dotted_without_dots:
-                try:
-                    language_morpho = db(self.language, "morpho")
-                    language_morpho.execute(f"SELECT dotted_without_dots FROM {self.language}_morpho WHERE lemma='{self.lemma}' and pos='{self.pos}';")
-                    result = language_morpho.fetchone()
-                except OperationalError:
-                    raise
-                else:
-                    if result:
-                        self._dotted_without_dots = result[0]
+        if self.language == 'hebrew' and not self._dotted_without_dots:
+            try:
+                language_morpho = db(self.language, "morpho")
+                language_morpho.execute(f"SELECT dotted_without_dots FROM {self.language}_morpho WHERE lemma='{self.lemma}' and pos='{self.pos}';")
+                result = language_morpho.fetchone()
+            except OperationalError:
+                raise
+            else:
+                if result:
+                    self._dotted_without_dots = result[0]
         return str(self._dotted_without_dots) if self._dotted_without_dots else ''
 
     @property
     def variants(self) -> str:
-        if self.language == 'hebrew':
-            if not self._variants:
-                try:
-                    language_morpho = db(self.language, "morpho")
-                    language_morpho.execute(f"SELECT variants FROM {self.language}_morpho WHERE lemma='{self.lemma}' and pos='{self.pos}';")
-                    result = language_morpho.fetchone()
-                except OperationalError:
-                    raise
-                else:
-                    if result:
-                        self._variants = result[0]
+        if self.language == 'hebrew' and not self._variants:
+            try:
+                language_morpho = db(self.language, "morpho")
+                language_morpho.execute(f"SELECT variants FROM {self.language}_morpho WHERE lemma='{self.lemma}' and pos='{self.pos}';")
+                result = language_morpho.fetchone()
+            except OperationalError:
+                raise
+            else:
+                if result:
+                    self._variants = result[0]
         return str(self._variants) if self._variants else ''
 
     @property
     def translit_dotted(self) -> str:
-        if self.language == 'hebrew':
-            if not self._translit_dotted:
-                try:
-                    language_morpho = db(self.language, "morpho")
-                    language_morpho.execute(f"SELECT translit_dotted FROM {self.language}_morpho WHERE lemma='{self.lemma}' and pos='{self.pos}';")
-                    result = language_morpho.fetchone()
-                except OperationalError:
-                    raise
-                else:
-                    if result:
-                        self._translit_dotted = result[0]
+        if self.language == 'hebrew' and not self._translit_dotted:
+            try:
+                language_morpho = db(self.language, "morpho")
+                language_morpho.execute(f"SELECT translit_dotted FROM {self.language}_morpho WHERE lemma='{self.lemma}' and pos='{self.pos}';")
+                result = language_morpho.fetchone()
+            except OperationalError:
+                raise
+            else:
+                if result:
+                    self._translit_dotted = result[0]
         return str(self._translit_dotted) if self._translit_dotted else ''
 
     @property
     def translit_undotted(self) -> str:
-        if self.language == 'hebrew':
-            if not self._translit_undotted:
-                try:
-                    language_morpho = db(self.language, "morpho")
-                    language_morpho.execute(f"SELECT translit_undotted FROM {self.language}_morpho WHERE lemma='{self.lemma}' and pos='{self.pos}';")
-                    result = language_morpho.fetchone()
-                except OperationalError:
-                    raise
-                else:
-                    if result:
-                        self._translit_undotted = result[0]
+        if self.language == 'hebrew' and not self._translit_undotted:
+            try:
+                language_morpho = db(self.language, "morpho")
+                language_morpho.execute(f"SELECT translit_undotted FROM {self.language}_morpho WHERE lemma='{self.lemma}' and pos='{self.pos}';")
+                result = language_morpho.fetchone()
+            except OperationalError:
+                raise
+            else:
+                if result:
+                    self._translit_undotted = result[0]
         return str(self._translit_undotted) if self._translit_undotted else ''
 
     @property
@@ -839,7 +826,7 @@ class Morpho(object):
 
     @property
     def degree(self) -> str:
-        if self.pos == 'a' or self.pos == 'r':
+        if self.pos in ['a', 'r']:
             groups = re.search(r'^[\S]([pcs])[\S][\S][\S][\S][\S][\S][\S][\S]$', self.miscellanea)
             return groups.group(1) if groups else ''
         else:
@@ -847,7 +834,7 @@ class Morpho(object):
 
     @property
     def degree_verbose(self) -> str:
-        if self.pos == 'a' or self.pos == 'r':
+        if self.pos in ['a', 'r']:
             _degree_types = {
                 'p': 'positive',
                 'c': 'comparative',
@@ -1025,7 +1012,37 @@ class Lemma(object):
             lemma = lemma.replace("'", "''")
         if ' ' in lemma:
             lemma = lemma.replace(' ', '_')
-        if language != 'latin':
+        if language == 'latin':
+            mquery = f"miscellanea='{miscellanea}'" if miscellanea else ''
+            iquery = f"id='{id}'" if id else ''
+            pquery = f"pos='{pos}'" if pos in 'nvar' else ""
+            query = ' AND '.join(filter(None, [iquery, pquery, mquery]))
+            if query: query = ' AND ' + query
+            try:
+                language_morpho = db(language, "morpho")
+
+                if language_morpho:
+                    language_morpho.execute(f"SELECT * FROM {language}_morpho WHERE lemma='{lemma}'{query};")
+                    results = language_morpho.fetchall()
+                else:
+                    results = None
+            except OperationalError:
+                raise
+            else:
+                if results:
+                    if len(results) > 1:
+                        ambig = ", ".join([result[1] for result in results])
+                        raise ValueError(f"cannot disambiguate {lemma} between {ambig}; use get() instead")
+                    else:
+                        result = results[0]
+                        instance = super().__new__(cls)
+                        instance._lemma = result[1]
+                        instance._pos = result[2]
+                        instance._morpho = Morpho(result, language=language)
+                else:
+                    instance = None
+                return instance
+        else:
             db_column = {
             'n': 'id_n',
             'v': 'id_v',
@@ -1063,46 +1080,6 @@ class Lemma(object):
                     instance = super().__new__(cls)
                     instance._lemma = lemma
                     instance._pos = pos
-                return instance
-        else:
-            if miscellanea:
-                mquery = f"miscellanea='{miscellanea}'"
-            else:
-                mquery = ''
-
-            if id:
-                iquery = f"id='{id}'"
-            else:
-                iquery = ''
-            if pos in 'nvar':
-                pquery = f"pos='{pos}'"
-            else:
-                pquery = ""
-            query = ' AND '.join(filter(None, [iquery, pquery, mquery]))
-            if query: query = ' AND ' + query
-            try:
-                language_morpho = db(language, "morpho")
-
-                if language_morpho:
-                    language_morpho.execute(f"SELECT * FROM {language}_morpho WHERE lemma='{lemma}'{query};")
-                    results = language_morpho.fetchall()
-                else:
-                    results = None
-            except OperationalError:
-                raise
-            else:
-                if not results:
-                    instance = None
-                else:
-                    if len(results) > 1:
-                        ambig = ", ".join([result[1] for result in results])
-                        raise ValueError(f"cannot disambiguate {lemma} between {ambig}; use get() instead")
-                    else:
-                        result = results[0]
-                        instance = super().__new__(cls)
-                        instance._lemma = result[1]
-                        instance._pos = result[2]
-                        instance._morpho = Morpho(result, language=language)
                 return instance
 
     def __init__(self, lemma, pos, miscellanea, id, language):
@@ -1218,13 +1195,12 @@ class Lemma(object):
     def get_derivates(self, pos: str='nvar') -> List['Lemma']:
         """ Returns all Lemmas with Relation of type '\' (derived-from) to the Lemma matching part of speech 'pos' """
 
-        _derived_words = [derivate for derivate in self.derivates if derivate.pos in pos]
-        return _derived_words
+        return [derivate for derivate in self.derivates if derivate.pos in pos]
 
     @property
     def derivates(self) -> List['Lemma']:
         """ Returns all Lemmas with Relation of type '\' (derived-from) to the Lemma """
-        _derived_words = list()
+        _derived_words = []
         try:
             language_relation = db(self.language, "relation")
             language_relation.execute(f"SELECT id_source, w_source FROM {self.language}_relation WHERE w_target='{self.lemma}' AND type='\\';")
@@ -1240,13 +1216,12 @@ class Lemma(object):
     def get_relatives(self, pos: str='nvar') -> List['Lemma']:
         """ Returns all Lemmas with Relation of type '/' (related-to) to the Lemma matching part of speech 'pos' """
 
-        _related_words = [relative for relative in self.relatives if relative.pos in pos]
-        return _related_words
+        return [relative for relative in self.relatives if relative.pos in pos]
 
     @property
     def relatives(self) -> List['Lemma']:
         """ Returns all Lemmas with Relation of type '/' (related-to) to the Lemma """
-        _related_words = list()
+        _related_words = []
         try:
             language_relation = db(self.language, "relation")
             language_relation.execute(f"SELECT id_target, w_target FROM {self.language}_relation WHERE w_source='{self.lemma}' AND type='/';")
@@ -1279,7 +1254,7 @@ class Lemma(object):
                 for result in results:
                     temp.add((result[1], result[0][0],))
 
-        _antonyms = list()
+        _antonyms = []
         if temp:
             for antonym in temp:
                 _antonyms.append(Lemma(*antonym, self.language))
@@ -1306,7 +1281,7 @@ class Lemma(object):
                 for result in results:
                     temp.add((result[1], result[0][0],))
 
-        _composed = list()
+        _composed = []
         if temp:
             for lemma in temp:
                 _composed.append(Lemma(*lemma, self.language))
@@ -1333,7 +1308,7 @@ class Lemma(object):
                 for result in results:
                     temp.add((result[1], result[0][0],))
 
-        _composes = list()
+        _composes = []
         if temp:
             for lemma in temp:
                 _composes.append(Lemma(*lemma, self.language))
@@ -1425,10 +1400,7 @@ class Relation(object):
         self._w_target = w_target
         self._language = language
 
-        if status in ('new', 'NEW'):
-            self._status = status.lower()
-        else:
-            self._status = ''
+        self._status = status.lower() if status in ('new', 'NEW') else ''
 
     @property
     def language(self) -> str:
@@ -1533,7 +1505,7 @@ class WordNet(object):
     @property
     def synsets(self) -> Generator['Synset', None, Iterable['Synset']]:
         if not self._synsets:
-            temp = list()
+            temp = []
             try:
                 language_synset = db(self.language, "synset")
 
@@ -1551,20 +1523,16 @@ class WordNet(object):
                         temp.append(synset)
                         yield synset
             self._synsets = temp
-        return (synset for synset in self._synsets)
+        return iter(self._synsets)
 
     def get_synsets(self, pos: str = 'nvar') -> Generator['Synset', None, Iterable['Synset']]:
         if not self._synsets:
-            temp = list()
+            temp = []
             try:
-                if pos == 'nvar':
-                    pos_query = ''
-                else:
-                    pos_query = f" WHERE id LIKE '{pos}%'"
-
                 language_synset = db(self.language, "synset")
 
                 if language_synset:
+                    pos_query = '' if pos == 'nvar' else f" WHERE id LIKE '{pos}%'"
                     language_synset.execute(f"SELECT * FROM {self.language}_synset{pos_query}")
                     results = language_synset.fetchall()
                 else:
@@ -1578,7 +1546,7 @@ class WordNet(object):
                         temp.append(synset)
                         yield synset
             self._synsets = temp
-        return (synset for synset in self._synsets)
+        return iter(self._synsets)
 
 
     @lru_cache(maxsize=2048)
@@ -1595,17 +1563,16 @@ class WordNet(object):
             elif "'" in lemma:
                 lemma = lemma.replace("'", "''")
             if mode:
-                if mode == 'startswith':
-                    lquery = f"lemma LIKE '{lemma}%'"
-                elif mode == 'endswith':
+                if mode == 'endswith':
                     lquery = f"lemma LIKE '%{lemma}'"
+                elif mode == 'startswith':
+                    lquery = f"lemma LIKE '{lemma}%'"
                 else:
                     lquery = f"lemma LIKE '%{lemma}%'"
             else:
                 lquery = f"lemma='{lemma}'"
-        if pos:
-            if pos in 'nvar':
-                pquery += f"pos='{pos}'"
+        if pos and pos in 'nvar':
+            pquery += f"pos='{pos}'"
         if miscellanea:
             mquery = f"miscellanea='{miscellanea}'"
         query = ' AND '.join(filter(None, [lquery, pquery, mquery]))
@@ -1658,18 +1625,17 @@ class WordNet(object):
                 elif "'" in lemma:
                     lemma = lemma.replace("'", "''")
                 if mode:
-                    if mode == 'startswith':
-                        lquery = f"lemma LIKE '{lemma}%'"
-                    elif mode == 'endswith':
+                    if mode == 'endswith':
                         lquery = f"lemma LIKE '%{lemma}'"
+                    elif mode == 'startswith':
+                        lquery = f"lemma LIKE '{lemma}%'"
                     else:
                         lquery = f"lemma LIKE '%{lemma}%'"
                 else:
                     lquery = f"lemma='{lemma}'"
 
-            if pos:
-                if pos in 'nvar':
-                    pquery += f"pos='{pos}'"
+            if pos and pos in 'nvar':
+                pquery += f"pos='{pos}'"
 
             if morpho:
                 mquery = f"'{morpho}'"
@@ -1687,12 +1653,12 @@ class WordNet(object):
             raise
         else:
             if results:
-                yield from (result for result in results)
+                yield from iter(results)
 
     @property
     def semfields(self) -> Generator['Semfield', None, Iterable['Semfield']]:
         if not self._semfields:
-            self._semfields = list()
+            self._semfields = []
             try:
                 common_semfield_hierarchy = db("common", "semfield_hierarchy")
 
@@ -1709,7 +1675,7 @@ class WordNet(object):
                         semfield = Semfield(code=result[0], english=result[1], language=self.language)
                         self._semfields.append(semfield)
                         yield semfield
-        return (semfield for semfield in self._semfields)
+        return iter(self._semfields)
 
     def get_semfield_by_code(self, code: str) -> List['Semfield']:
         try:
@@ -1754,7 +1720,7 @@ class WordNet(object):
     @property
     def lemmas(self) -> Generator[object, None, Iterable[object]]:
         if self._lemmas is None:
-            self._lemmas = list()
+            self._lemmas = []
             try:
                 language_morpho = db(self.language, "morpho")
 
@@ -1789,7 +1755,7 @@ class WordNet(object):
                                     yield lemma
 
         else:
-            yield from (lemma for lemma in self._lemmas)
+            yield from iter(self._lemmas)
 
     def __iter__(self):
         yield from self.lemmas
@@ -1800,7 +1766,7 @@ class WordNet(object):
     @property
     def relations(self) -> Generator['Relation', None, Iterable['Relation']]:
         if not self._relations:
-            self._relations = list()
+            self._relations = []
             try:
                 common_relation = db("common", "relation")
                 if common_relation:
