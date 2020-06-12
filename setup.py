@@ -4,7 +4,7 @@ from setuptools.command.install import install
 
 def compile_dbs():
     from multiwordnet.db import compile
-    for language in ['common', 'english', 'french', 'hebrew', 'italian', 'latin', 'spanish']:
+    for language in ['common', 'english', 'french', 'hebrew', 'italian', 'latin', 'spanish', 'portuguese']:
         compile(language)
 
 
@@ -20,7 +20,7 @@ with open("README.rst", "r") as fh:
     long_description = fh.read()
 
 setup(name='multiwordnet',
-      version='0.1.2',
+      version='0.1.3',
       description='A helper library for accessing and manipulating WordNets in the MultiWordNet',
       long_description=long_description,
       url='',
