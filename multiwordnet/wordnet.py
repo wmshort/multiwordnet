@@ -392,7 +392,8 @@ class Synset(object):
                     result = language_synset.fetchone()
 
                     if result and result[0] and result[0] != ' GAP! ':
-                        temp = [Lemma(lemma.lower(), self.id[0], miscellanea=None, id=None, language=self.language)
+                        temp = [Lemma(lemma.lower(), id=self.id[0], miscellanea=None, pos=self.pos,
+                                      language=self.language)
                                 for \
                                 lemma in result[0].strip(
 
