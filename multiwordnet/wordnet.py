@@ -392,7 +392,11 @@ class Synset(object):
                     result = language_synset.fetchone()
 
                     if result and result[0] and result[0] != ' GAP! ':
-                        temp = [Lemma(lemma, self.id[0], self.language) for lemma in result[0].strip().split(' ')]
+                        temp = [Lemma(lemma.lower(), self.id[0], miscellanea=None, id=None, language=self.language)
+                                for \
+                                lemma in result[0].strip(
+
+                        ).split(' ')]
                 else:
                     language_index = db(self.language, "index")
 
@@ -403,7 +407,8 @@ class Synset(object):
                         if results:
                             for result in results:
                                 if result[0] != 'gap!':
-                                    temp.append(Lemma(result[0], self.id[0], self.language))
+                                    temp.append(Lemma(result[0], pos=self.pos, id=self.id[0], language=self.language,
+                                                      miscellanea=None))
             except OperationalError:
                 raise
             else:
@@ -1149,7 +1154,8 @@ class Lemma(object):
                         if results:
                             for result in results:
                                 if result[0] != self.lemma:
-                                    temp.add(Lemma(result[0], self.pos, self.language))
+                                    temp.add(Lemma(result[0], pos=self.pos, language=self.language, miscellanea=None,
+                                                   id=None))
 
                 if not temp:
                     language_synset = db(self.language, "synset")
@@ -1161,10 +1167,12 @@ class Lemma(object):
                             if result[0]:
                                 for word in result[0].strip().split(' '):
                                     if word != self.lemma:
-                                        temp.add(Lemma(word, self.pos, self.language))
+                                        temp.add(Lemma(word, pos=self.pos, language=self.language, miscellanea=None,
+                                                       id=None))
                             if result[1]:
                                 for phrase in result[1].strip().split(' '):
-                                    temp.add(Lemma(phrase, self.pos, self.language))
+                                    temp.add(Lemma(phrase, pos=self.pos, language=self.language, miscellanea=None,
+                                                   id=None))
             except OperationalError:
                 raise
             else:
@@ -1210,7 +1218,8 @@ class Lemma(object):
         else:
             if results:
                 for result in results:
-                    _derived_words.append(Lemma(result[1], result[0][0], self.language))
+                    _derived_words.append(Lemma(result[1], pos=result[0][0], language=self.language,
+                                                miscellanea=None, id=None))
             return _derived_words
 
     def get_relatives(self, pos: str='nvar') -> List['Lemma']:
@@ -1231,7 +1240,8 @@ class Lemma(object):
         else:
             if results:
                 for result in results:
-                    _related_words.append(Lemma(result[1], result[0][0], self.language))
+                    _related_words.append(Lemma(result[1], pos=result[0][0], language=self.language,
+                                                miscellanea=None, id=None))
 
         return _related_words
 
@@ -1257,7 +1267,7 @@ class Lemma(object):
         _antonyms = []
         if temp:
             for antonym in temp:
-                _antonyms.append(Lemma(*antonym, self.language))
+                _antonyms.append(Lemma(*antonym, language=self.language))
         return _antonyms
 
     @property
@@ -1284,7 +1294,7 @@ class Lemma(object):
         _composed = []
         if temp:
             for lemma in temp:
-                _composed.append(Lemma(*lemma, self.language))
+                _composed.append(Lemma(*lemma, language=self.language))
         return _composed
 
     @property
@@ -1311,7 +1321,7 @@ class Lemma(object):
         _composes = []
         if temp:
             for lemma in temp:
-                _composes.append(Lemma(*lemma, self.language))
+                _composes.append(Lemma(*lemma, language=self.language))
         return _composes
 
     def __str__(self):
@@ -1433,11 +1443,13 @@ class Relation(object):
 
     @property
     def w_target(self) -> Lemma:
-        return Lemma(self._w_target, self.target.pos, language=self.target.language, id=None, miscellanea=None) if self._w_target else None
+        return Lemma(self._w_target, pos=self.target.pos, language=self.target.language, id=None, miscellanea=None) if \
+            self._w_target else None
 
     @property
     def w_source(self) -> Lemma:
-        return Lemma(self._w_source, self.source.pos, language=self.source.language, id=None, miscellanea=None) if self._w_source else None
+        return Lemma(self._w_source, pos=self.source.pos, language=self.source.language, id=None, miscellanea=None) if \
+            self._w_source else None
 
     @property
     def is_lexical(self) -> bool:
@@ -1609,7 +1621,7 @@ class WordNet(object):
             else:
                 if results:
                     for result in set(results):
-                        lem = Lemma(result[0], result[1], miscellanea=None, id=None, language=self.language)
+                        lem = Lemma(result[0], pos=result[1], miscellanea=None, id=None, language=self.language)
                         if lem is not None:
                             _list.append(lem)
         return _list
@@ -1750,7 +1762,8 @@ class WordNet(object):
                         for result in results:
                             for i in range(1, 5):
                                 if result[i]:
-                                    lemma = Lemma(result[0], pos[i], None, None, self.language)
+                                    lemma = Lemma(result[0], pos=pos[i], miscellanea=None, id=None,
+                                                  language=self.language)
                                     self._lemmas.append(lemma)
                                     yield lemma
 
