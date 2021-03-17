@@ -49,9 +49,7 @@ class Semfield(object):
                 instance = None
             else:
                 if len(results) > 1 and code is None:
-                    results_codes = []
-                    for result in results:
-                        results_codes.append(result[0])
+                    results_codes = [result[0] for result in results]
                     raise ValueError(f'cannot disambiguate "{english}" between "{", ".join(results_codes)}"')
                 else:
                     instance = super().__new__(cls)
@@ -328,6 +326,8 @@ class Synset(object):
         :return: The language name as a string.
         """
         if id:
+            if id[2].isdigit():
+                return 'english'
             _language_names = {
                 'P': 'english',  # Portuguese
                 'N': 'italian',
@@ -338,10 +338,7 @@ class Synset(object):
                 'L': 'latin',
                 'R': 'romanian',
             }
-            if id[2].isdigit():
-                return 'english'
-            else:
-                return _language_names[id[2]]
+            return _language_names[id[2]]
 
     @property
     def semfield(self) -> List['Semfield']:
@@ -477,13 +474,12 @@ class Synset(object):
 
         if len(path) > 1 and self in path[1:]:
             return 0
+        path.append(self)
+        hypernyms = [hypernymy.target for hypernymy in self.get_relations('@')]
+        if not hypernyms:
+            return 0
         else:
-            path.append(self)
-            hypernyms = [hypernymy.target for hypernymy in self.get_relations('@')]
-            if not hypernyms:
-                return 0
-            else:
-                return 1 + max(hypernym.max_depth(path) for hypernym in hypernyms)
+            return 1 + max(hypernym.max_depth(path) for hypernym in hypernyms)
 
     @property
     def min_depth(self, path: list = None):
@@ -497,13 +493,12 @@ class Synset(object):
 
         if len(path) > 1 and self in path[1:]:
             return 0
+        path.append(self)
+        hypernyms = [hypernymy.target for hypernymy in self.get_relations('@')]
+        if not hypernyms:
+            return 0
         else:
-            path.append(self)
-            hypernyms = [hypernymy.target for hypernymy in self.get_relations('@')]
-            if not hypernyms:
-                return 0
-            else:
-                return 1 + min(hypernym.min_depth(path) for hypernym in hypernyms)
+            return 1 + min(hypernym.min_depth(path) for hypernym in hypernyms)
 
     @property
     def closure(self, type: str, depth=-1):
@@ -812,43 +807,39 @@ class Morpho(object):
 
     @property
     def person(self) -> str:
-        if self.pos == 'v':
-            groups = re.search(r'^[\S]([123])[\S][\S][\S][\S][\S][\S][\S][\S]$', self.miscellanea)
-            return groups.group(1) if groups else ''
-        else:
+        if self.pos != 'v':
             return None
+        groups = re.search(r'^[\S]([123])[\S][\S][\S][\S][\S][\S][\S][\S]$', self.miscellanea)
+        return groups.group(1) if groups else ''
 
     @property
     def person_verbose(self) -> str:
-        if self.pos == 'v':
-            _person_types = {
-                '1': '1st person',
-                '2': '2nd person',
-                '3': '3rd person',
-            }
-            return str(_person_types[self.person])
-        else:
+        if self.pos != 'v':
             return None
+        _person_types = {
+            '1': '1st person',
+            '2': '2nd person',
+            '3': '3rd person',
+        }
+        return str(_person_types[self.person])
 
     @property
     def degree(self) -> str:
-        if self.pos in ['a', 'r']:
-            groups = re.search(r'^[\S]([pcs])[\S][\S][\S][\S][\S][\S][\S][\S]$', self.miscellanea)
-            return groups.group(1) if groups else ''
-        else:
+        if self.pos not in ['a', 'r']:
             return None
+        groups = re.search(r'^[\S]([pcs])[\S][\S][\S][\S][\S][\S][\S][\S]$', self.miscellanea)
+        return groups.group(1) if groups else ''
 
     @property
     def degree_verbose(self) -> str:
-        if self.pos in ['a', 'r']:
-            _degree_types = {
-                'p': 'positive',
-                'c': 'comparative',
-                's': 'superlative',
-            }
-            return str(_degree_types[self.degree])
-        else:
+        if self.pos not in ['a', 'r']:
             return None
+        _degree_types = {
+            'p': 'positive',
+            'c': 'comparative',
+            's': 'superlative',
+        }
+        return str(_degree_types[self.degree])
 
     @property
     def number(self) -> str:
@@ -986,7 +977,7 @@ class Morpho(object):
     @property
     def is_istem(self) -> bool:
         groups = re.search(r'^[\S][\S][\S][\S][\S][\S][\S][\S][\S]([i])$', self.miscellanea)
-        return True if groups else False
+        return bool(groups)
 
     @property
     def istem(self) -> str:
@@ -1037,7 +1028,7 @@ class Lemma(object):
             else:
                 if results:
                     if len(results) > 1:
-                        ambig = ", ".join([result[1] for result in results])
+                        ambig = ", ".join(result[1] for result in results)
                         raise ValueError(f"cannot disambiguate {lemma} between {ambig}; use get() instead")
                     else:
                         result = results[0]
@@ -1101,7 +1092,7 @@ class Lemma(object):
     def morpho(self) -> Morpho:
         if not self._morpho:
             self._morpho = Morpho(self.lemma, self.pos, self.language)
-        return self._morpho if self._morpho else None
+        return self._morpho or None
 
     @property
     def synsets(self) -> List['Synset']:
@@ -1703,10 +1694,13 @@ class WordNet(object):
             raise
         else:
             if results:
-                _semfield = [Semfield(result[0], code=code, language=self.language) for result in results]
+                return [
+                    Semfield(result[0], code=code, language=self.language)
+                    for result in results
+                ]
+
             else:
-                _semfield = None
-            return _semfield
+                return None
 
     def get_semfield_by_english(self, english: str) -> List['Semfield']:
         try:
@@ -1722,10 +1716,15 @@ class WordNet(object):
             raise
         else:
             if results:
-                _semfield = [Semfield(english=english, code=result[0], language=self.language) for result in results]
+                return [
+                    Semfield(
+                        english=english, code=result[0], language=self.language
+                    )
+                    for result in results
+                ]
+
             else:
-                _semfield = None
-            return _semfield
+                return None
 
     def get_semfield(self, code: str, english: str) -> Semfield:
         return Semfield(code=code, english=english, language=self.language)
